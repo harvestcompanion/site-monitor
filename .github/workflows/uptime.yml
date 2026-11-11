@@ -1,0 +1,34 @@
+name: Uptime check
+
+# Every 15 minutes: confirm each public site answers with HTTP 200.
+# A failed run makes GitHub email the account owner (Settings > Notifications > Actions).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: "Type yes to force a failure (tests the alert email)"
+        required: false
+        default: "no"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check sites
+        run: bash scripts/check-sites.sh
+      - name: Simulated failure (manual test only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.simulate_failure == 'yes' }}
+        run: |
+          echo "This is a deliberate test failure to confirm the alert email arrives."
+          exit 1

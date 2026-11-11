@@ -1,0 +1,39 @@
+name: Daily backup and certificate check
+
+# Once a day (05:15 UTC, after both nightly backups): confirm each server's newest
+# off-site backup is less than 26 hours old, and that no SSL certificate is within
+# 14 days of expiring. A failed run makes GitHub email the account owner.
+on:
+  schedule:
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check last night's backups landed
+        run: bash scripts/check-backups.sh
+      - name: Check SSL certificates
+        if: always()
+        run: bash scripts/check-certs.sh
+      - name: Keep the schedule alive
+        # GitHub pauses scheduled checks on repositories with no activity for 60 days.
+        # Record a heartbeat about once a month so that never happens.
+        if: always()
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          if [ $(( (now - last) / 86400 )) -ge 30 ]; then
+            date -u +%Y-%m-%d > heartbeat.txt
+            git config user.name "site-monitor"
+            git config user.email "site-monitor@users.noreply.github.com"
+            git add heartbeat.txt
+            git commit -m "Monthly heartbeat (keeps scheduled checks active)"
+            git push
+          fi
