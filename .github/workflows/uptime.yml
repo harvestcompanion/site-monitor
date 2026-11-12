@@ -4,7 +4,7 @@ name: Uptime check
 # A failed run makes GitHub email the account owner (Settings > Notifications > Actions).
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "7-59/15 * * * *"
   workflow_dispatch:
     inputs:
       simulate_failure:
